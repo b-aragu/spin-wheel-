@@ -1,0 +1,10 @@
+flask
+Flask-Login
+flask_sqlalchemy
+flask_migrate
+flask_cors
+auth
+flask_script
+logging
+secrets
+
