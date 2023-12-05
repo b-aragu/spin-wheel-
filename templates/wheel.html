@@ -1,0 +1,135 @@
+<html>
+    <head>
+        <title>
+            Spin Wheel
+        </title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   </head>
+    <body>
+	 <p>Number of Users: {{ users|length }}</p>
+<ul>
+    {% for user in users %}
+        <li>{{ user.name }}</li>
+    {% endfor %}
+</ul>
+        <div class="wheel" id="wheel-container">
+            {% for user in users %}
+            <div class="wheel-section" data-angle="{{ 360 / users|length }}" style="background-color: {{ user.color }};">
+		<span class="user-name">{{ user.name }}</span>
+	    </div>
+            {% endfor %}
+        </div>
+        <button class="rotatewheel" onclick="magicWheel()">Rotate</button>    
+
+        <script>
+            function magicWheel() {
+                var wheelContainer = document.getElementById('wheel-container');
+                var sections = document.getElementsByClassName('wheel-section');
+
+                var totalAngle = 0;
+                for (var i = 0; i < sections.length; i++) {
+                    totalAngle += parseInt(sections[i].getAttribute('data-angle'));
+                }
+
+                var currentAngle = 0;
+                var rotations = 5; // Number of rotations
+                var targetAngle = currentAngle + rotations * 360 + Math.floor(Math.random() * totalAngle); // Random target within one full rotation
+
+                // Duration of the spin in milliseconds
+                var duration = 5000;
+
+                var startTime = null;
+
+                function rotateWheel(timestamp) {
+                    if (!startTime) {
+                        startTime = timestamp;
+                    }
+
+                    var progress = timestamp - startTime;
+                    var percentage = Math.min(progress / duration, 1);
+
+                    currentAngle = easeOutCubic(percentage) * targetAngle;
+
+                    for (var i = 0; i < sections.length; i++) {
+                        var angle = parseInt(sections[i].getAttribute('data-angle'));
+                        sections[i].style.transform = 'rotate(' + currentAngle + 'deg)';
+                    }
+
+                    if (percentage < 1) {
+                        requestAnimationFrame(rotateWheel);
+                    } else {
+                        startTime = null;
+                    }
+                }
+
+                requestAnimationFrame(rotateWheel);
+            }
+
+            function easeOutCubic(t) {
+                return (--t) * t * t + 1;
+            }
+
+        </script>
+	<style>
+		body {
+    background-color: yellow;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    margin: 0;
+}
+
+.wheel {
+    position: relative;
+    width: 500px;
+    height: 500px;
+    border-radius: 50%;
+    border: 2px solid #000;
+    overflow: hidden;
+}
+
+.wheel-section {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background-color: #ffcc00;
+    transform-origin: 50% 50%;
+    transition: all ease 5s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.user-name {
+       color: #fff; /* Adjust text color as needed */
+      font-size: 14px; /* Adjust font size as needed */
+        }
+
+.rotatewheel {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80px;
+    height: 40px;
+    border-radius: 10px;
+    border: 2px solid #1361f2;
+    background-color: #fff;
+    color: #1361f2;
+    font-weight: bold;
+    cursor: pointer;
+    transition:all ease 0.5s;
+    font-size: 15px;
+}
+
+.rotatewheel:active {
+    transition: scale(2.5);
+    width: 90px;
+    height: 50px;
+    font-size: 20px;
+    background-color: green;
+}
+	</style>
+    </body>
+</html>
+
