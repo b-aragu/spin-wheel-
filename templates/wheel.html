@@ -1,135 +1,252 @@
 <html>
-    <head>
-        <title>
-            Spin Wheel
-        </title>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-   </head>
-    <body>
-	 <p>Number of Users: {{ users|length }}</p>
-<ul>
-    {% for user in users %}
-        <li>{{ user.name }}</li>
-    {% endfor %}
-</ul>
-        <div class="wheel" id="wheel-container">
-            {% for user in users %}
-            <div class="wheel-section" data-angle="{{ 360 / users|length }}" style="background-color: {{ user.color }};">
-		<span class="user-name">{{ user.name }}</span>
-	    </div>
-            {% endfor %}
-        </div>
-        <button class="rotatewheel" onclick="magicWheel()">Rotate</button>    
-
-        <script>
-            function magicWheel() {
-                var wheelContainer = document.getElementById('wheel-container');
-                var sections = document.getElementsByClassName('wheel-section');
-
-                var totalAngle = 0;
-                for (var i = 0; i < sections.length; i++) {
-                    totalAngle += parseInt(sections[i].getAttribute('data-angle'));
-                }
-
-                var currentAngle = 0;
-                var rotations = 5; // Number of rotations
-                var targetAngle = currentAngle + rotations * 360 + Math.floor(Math.random() * totalAngle); // Random target within one full rotation
-
-                // Duration of the spin in milliseconds
-                var duration = 5000;
-
-                var startTime = null;
-
-                function rotateWheel(timestamp) {
-                    if (!startTime) {
-                        startTime = timestamp;
-                    }
-
-                    var progress = timestamp - startTime;
-                    var percentage = Math.min(progress / duration, 1);
-
-                    currentAngle = easeOutCubic(percentage) * targetAngle;
-
-                    for (var i = 0; i < sections.length; i++) {
-                        var angle = parseInt(sections[i].getAttribute('data-angle'));
-                        sections[i].style.transform = 'rotate(' + currentAngle + 'deg)';
-                    }
-
-                    if (percentage < 1) {
-                        requestAnimationFrame(rotateWheel);
-                    } else {
-                        startTime = null;
-                    }
-                }
-
-                requestAnimationFrame(rotateWheel);
-            }
-
-            function easeOutCubic(t) {
-                return (--t) * t * t + 1;
-            }
-
-        </script>
-	<style>
-		body {
-    background-color: yellow;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 100vh;
-    margin: 0;
-}
-
-.wheel {
-    position: relative;
-    width: 500px;
-    height: 500px;
-    border-radius: 50%;
-    border: 2px solid #000;
-    overflow: hidden;
-}
-
-.wheel-section {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    background-color: #ffcc00;
-    transform-origin: 50% 50%;
-    transition: all ease 5s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-.user-name {
-       color: #fff; /* Adjust text color as needed */
-      font-size: 14px; /* Adjust font size as needed */
+<head>
+    <title>Spin - Win Game</title>    
+    <style>
+        canvas{
+            width:100%;
         }
+        #snow {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    z-index: 1000;
+}
+    
+    </style>
+</head>
+<body bgcolor="#AF0007"><div id="snow"></div>
+    <script src="{{ url_for('static', filename='JS/phaser.js') }}"></script>
+<script>
+//Hello World of Phaser = Basic Game = Single Scene in Spin & Win Game
+//How to create the basic skeleton for the game -> Game Loop
 
-.rotatewheel {
-    position: absolute;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 80px;
-    height: 40px;
-    border-radius: 10px;
-    border: 2px solid #1361f2;
-    background-color: #fff;
-    color: #1361f2;
-    font-weight: bold;
-    cursor: pointer;
-    transition:all ease 0.5s;
-    font-size: 15px;
+
+let users = {{ users|tojson|safe }};
+let num_segments = {{ num_segments }};
+
+// Create an array of user names
+let userNames = users.map(user => user.name);
+
+if (!users || !Array.isArray(users) || users.length === 0) {
+    console.error("Invalid user data");
+}
+// Update prizes_config based on the user data
+let prizes_config = {
+    count: num_segments,
+    prize_names: userNames,
+};
+
+
+
+
+let config = {
+    type : Phaser.CANVAS,
+    width : 800,
+    height:800,
+    backgroundColor : 0xffcc00,
+    
+    scene : {
+        preload : preload,
+        create : create,
+        // update : update,
+    }
+   
+};
+let game = new Phaser.Game(config);
+
+function preload() {
+    console.log("Preload");
+    // Load audio files
+    this.load.audio('tick', 'static/Assets/tick.mp3');
+    this.load.audio('clap', 'static/Assets/clap.mp3');
+    this.load.audio('tune', 'static/Assets/tune.mp3');
+
+    // Load image files
+    this.load.image('background', 'static/Assets/screen.jpg');
+    this.load.image('wheel', 'static/Assets/wheelin.png');
+    this.load.image('pin', 'static/Assets/pinin.png');
+    this.load.image('stand', 'static/Assets/stnd.png');
 }
 
-.rotatewheel:active {
-    transition: scale(2.5);
-    width: 90px;
-    height: 50px;
-    font-size: 20px;
-    background-color: green;
+function create(){
+    console.log("Create");
+
+    //buttons
+    // <button onclick="spinwheel()">Click me</button>
+    // this.load.onClick('spinwheel();');
+
+    //create the background image
+    let W = game.config.width;
+    let H = game.config.height;
+    
+    let background = this.add.sprite(0,0,'background');
+    background.setPosition(W/2,H/2);
+    background.setScale(0.16);
+
+     //lets create the stand
+    let stand = this.add.sprite(W/2,H/2,'stand');
+    stand.setScale(1);
+    
+
+    //lets create a pin
+    let pin = this.add.sprite(W/2,H/2,"pin");
+    pin.setScale(1);
+    pin.depth = 1;
+    
+    //let create wheel
+    this.wheel = this.add.sprite(W/2,H/2,"wheel");
+    this.wheel.setScale(0.215); 
+    //this.wheel.alpha = 0.5;
+    
+    
+
+    // the game has just started = we can spin the wheel
+    this.canSpin = true;
+    
+    //event listener for mouse click
+    this.input.on("pointerdown",spinwheel,this);
+    
+    //lets create text object
+    font_style = {
+        font : "bold 30px Arial",
+        align : "center",
+        color : "red",
+    }
+    this.game_text = this.add.text(50,750,"Know who you gonna secretly gift",font_style);
+    
+    
+    
 }
-	</style>
-    </body>
+document.addEventListener('DOMContentLoaded', function(){
+    var script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js';
+    script.onload = function(){
+        particlesJS("snow", {
+            "particles": {
+                "number": {
+                    "value": 200,
+                    "density": {
+                        "enable": true,
+                        "value_area": 800
+                    }
+                },
+                "color": {
+                    "value": "#ffffff"
+                },
+                "opacity": {
+                    "value": 0.7,
+                    "random": false,
+                    "anim": {
+                        "enable": false
+                    }
+                },
+                "size": {
+                    "value": 5,
+                    "random": true,
+                    "anim": {
+                        "enable": false
+                    }
+                },
+                "line_linked": {
+                    "enable": false
+                },
+                "move": {
+                    "enable": true,
+                    "speed": 5,
+                    "direction": "bottom",
+                    "random": true,
+                    "straight": false,
+                    "out_mode": "out",
+                    "bounce": false,
+                    "attract": {
+                        "enable": true,
+                        "rotateX": 300,
+                        "rotateY": 1200
+                    }
+                }
+            },
+            "interactivity": {
+                "events": {
+                    "onhover": {
+                        "enable": false
+                    },
+                    "onclick": {
+                        "enable": false
+                    },
+                    "resize": false
+                }
+            },
+            "retina_detect": true
+        });
+    }
+    document.head.append(script);
+});
+//Game Loop
+// function update(){
+//     console.log("Inside Update");
+//     //this.wheel.angle += 1;
+// }
+let tick = new Audio('Assets/tick.mp3');
+let clap = new Audio('Assets/clap.mp3');
+let gametune = new Audio('Assets/tune.mp3');
+
+function spinwheel(check){
+
+    // can we spin the wheel?
+    if(this.canSpin){
+
+        //clap pause here
+        clap.pause();
+        // star 
+         tick.play();
+
+        //game tune
+        gametune.play();
+
+        //player cannot spin 
+        this.canSpin=false;
+
+        console.log("You clicked the mouse");
+        console.log("Start spinning");
+        //this.game_text.setText("You clicked the mouse!");
+        
+        let rounds = Phaser.Math.Between(2,4);
+        let degrees = Phaser.Math.Between(0,11)*30;
+        
+        let total_angle = rounds*360 + degrees;
+        console.log(total_angle);
+        
+        let idx = prizes_config.count - 1 - Math.floor(degrees/(360/prizes_config.count));
+        
+        
+        tween = this.tweens.add({
+            targets: this.wheel,
+            angle: total_angle, 
+            ease: "Cubic.easeOut",
+            duration: 6000,
+            callbackScope:this,
+            onComplete:function(){
+
+                //pause game tune
+                // gametune.pause();
+
+                //clap play here
+                clap.play();
+                this.game_text.setText("You got : " + prizes_config.prize_names[idx]);
+                // clap.pause();
+                // player can spin again
+                this.canSpin=true;
+                // clap.play();
+            },
+        });
+    }
+}
+
+</script>
+
+</body>
+
 </html>
-

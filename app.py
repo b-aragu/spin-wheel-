@@ -121,8 +121,9 @@ def internal_error(error):
 @login_required
 def wheel():
     users = User.query.all()
+    users_data = [{'id': user.id, 'name': user.name} for user in users]
     num_segments = len(users)
-    return render_template('wheel.html', users=users, num_segments=num_segments)
+    return render_template('wheel.html', users=users_data, num_segments=num_segments)
 
 @app.route('/spin_wheel', methods=['POST'])
 @login_required
