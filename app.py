@@ -125,50 +125,6 @@ def wheel():
     num_segments = len(users)
     return render_template('wheel.html', users=users_data, num_segments=num_segments)
 
-@app.route('/spin_wheel', methods=['POST'])
-@login_required
-def spin_wheel():
-    selected_user_id = spin_the_wheel(current_user.id)
-
-    if selected_user_id is not None:
-        try:
-            # Check if the selected person has already been chosen
-            if Pairing.query.filter_by(chooser_id=current_user.id).first():
-                flash('You have already made a selection. Please wait for others.', 'error')
-            else:
-                # Update the database with the new Secret Santa pairing
-                new_pairing = Pairing(chooser_id=current_user.id, chosen_id=selected_user_id)
-                db.session.add(new_pairing)
-                db.session.commit()
-                flash(f'You selected {User.query.get(selected_user_id).name}!', 'success')
-        except Exception as e:
-            db.session.rollback()
-            logging.error(f"Error during database commit: {e}")
-        finally:
-            db.session.remove()
-    else:
-        # Handle the case when there is only one user
-        # Display a message or redirect as needed
-        flash('Not enough users for Secret Santa. Please invite more participants.', 'error')
-
-    return redirect(url_for('wheel'))
-
-def spin_the_wheel(chooser_id):
-    available_users = User.query.filter(User.id != chooser_id).all()
-
-    # Check if the chooser has already chosen someone
-    chosen_pairing = Pairing.query.filter_by(chooser_id=chooser_id).first()
-    if chosen_pairing:
-        available_users = [user for user in available_users if user.id != chosen_pairing.chosen_id]
-
-    # Check if there are at least two available users
-    if len(available_users) < 2:
-        flash('Not enough users for Secret Santa. Please invite more participants.', 'error')
-        return None  # or handle the situation in another way
-
-    chosen_user = random.choice(available_users)
-    return chosen_user.id
-
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
